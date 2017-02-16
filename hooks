@@ -5,6 +5,8 @@
 Libvirt hook for setting up iptables port-forwarding rules when using NAT-ed
 networking.
 """
+import libvirt
+
 __author__ = "Sascha Peilicke <saschpe@gmx.de>"
 __version__ = "0.1.1"
 
@@ -199,6 +201,25 @@ def stop_forwarding(dnat_chain, snat_chain, fwd_chain, public_ip, private_ip):
     delete_chain("filter", fwd_chain)
 
 
+def get_conn():
+    return libvirt.open("qemu:///system")
+
+
+def get_dom_ip(domain_name):
+    try:
+        conn = get_conn()
+        dom = conn.lookupByName(domain_name)
+        info = dom.interfaceAddresses(0)
+    except libvirt.libvirtError:
+        pass
+    else:
+        for key in info:
+            if "addrs" in info[key] and len(info[key]["addrs"]) > 0:
+                return info[key]["addrs"][0]["addr"]
+
+    return ""
+
+
 if __name__ == "__main__":
     vir_domain, action = sys.argv[1:3]
     domain = config().get(vir_domain)
@@ -209,7 +230,7 @@ if __name__ == "__main__":
     snat_chain = "SNAT-{0}".format(vir_domain)
     fwd_chain = "FWD-{0}".format(vir_domain)
     public_ip = domain.get("public_ip", host_ip())
-    private_ip = domain["private_ip"]
+    private_ip = domain["private_ip"] if domain["private_ip"] != None else get_domain_ip(vir_domain)
 
     if action in ["stopped", "reconnect"]:
         stop_forwarding(dnat_chain, snat_chain, fwd_chain, public_ip, private_ip)

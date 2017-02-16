@@ -205,7 +205,7 @@ def get_conn():
     return libvirt.open("qemu:///system")
 
 
-def get_dom_ip(domain_name):
+def get_domain_ip(domain_name):
     try:
         conn = get_conn()
         dom = conn.lookupByName(domain_name)
@@ -230,7 +230,7 @@ if __name__ == "__main__":
     snat_chain = "SNAT-{0}".format(vir_domain)
     fwd_chain = "FWD-{0}".format(vir_domain)
     public_ip = domain.get("public_ip", host_ip())
-    private_ip = domain["private_ip"] if domain["private_ip"] != None else get_domain_ip(vir_domain)
+    private_ip = domain["private_ip"] if "private_ip" in domain else get_domain_ip(vir_domain)
 
     if action in ["stopped", "reconnect"]:
         stop_forwarding(dnat_chain, snat_chain, fwd_chain, public_ip, private_ip)
